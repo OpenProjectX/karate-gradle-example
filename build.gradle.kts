@@ -4,6 +4,10 @@ plugins {
     id("org.openprojectx.karate.gradle")  version "0.1.70"
 }
 
+repositories {
+    mavenCentral()
+}
+
 dependencies {
     testImplementation("com.github.tomakehurst:wiremock-jre8:2.35.2")
 }
