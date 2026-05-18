@@ -1,0 +1,80 @@
+name: Regression Image
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  regression-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build regression image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: |
+            karate-gradle-example:regression
+            ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Run regression image without network
+        run: |
+          docker rm -f karate-regression >/dev/null 2>&1 || true
+          docker create --name karate-regression --network none karate-gradle-example:regression
+          set +e
+          docker start -a karate-regression
+          status=$?
+          set -e
+          mkdir -p build/reports
+          docker cp karate-regression:/workspace/build/reports/regression build/reports/regression || true
+          docker rm karate-regression
+          exit "$status"
+
+      - name: Publish regression image
+        if: github.event_name != 'pull_request'
+        run: |
+          while IFS= read -r tag; do
+            docker push "$tag"
+          done <<< "${{ steps.meta.outputs.tags }}"
+
+      - name: Upload regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-report
+          path: build/reports/regression
+          if-no-files-found: ignore
