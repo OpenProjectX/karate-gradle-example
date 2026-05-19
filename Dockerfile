@@ -3,7 +3,8 @@ FROM ${BASE_IMAGE}
 
 ENV APP_HOME=/workspace \
     GRADLE_USER_HOME=/opt/gradle-cache \
-    MAVEN_REPO_HOME=/opt/maven-repository
+    MAVEN_REPO_HOME=/opt/maven-repository \
+    ARTIFACTS_HOME=/opt/artifacts
 
 WORKDIR ${APP_HOME}
 
@@ -15,6 +16,13 @@ RUN chmod +x ./gradlew \
     && ./gradlew --no-daemon help
 
 COPY . .
+
+RUN mkdir -p "${ARTIFACTS_HOME}" \
+    && tar \
+        --exclude="./.gradle" \
+        --exclude="./build" \
+        -czf "${ARTIFACTS_HOME}/project-source.tar.gz" \
+        -C "${APP_HOME}" .
 
 RUN ./gradlew --no-daemon regressionRun \
     && find "${GRADLE_USER_HOME}/caches/modules-2/files-2.1" -type f \( -name "*.jar" -o -name "*.pom" -o -name "*.module" \) \
@@ -29,6 +37,7 @@ RUN ./gradlew --no-daemon regressionRun \
             mkdir -p "${target_dir}"; \
             cp "${file}" "${target_dir}/$(basename "${file}")"; \
         done \
+    && tar -czf "${ARTIFACTS_HOME}/maven-repository.tar.gz" -C "${MAVEN_REPO_HOME}" . \
     && ./gradlew --offline --no-daemon regressionRun
 
 CMD ["./gradlew", "--offline", "--no-daemon", "regressionRun"]
