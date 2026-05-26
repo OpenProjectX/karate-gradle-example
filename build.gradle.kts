@@ -1,12 +1,12 @@
 import org.openprojectx.karate.gradle.task.RegressionRunTask
 
 plugins {
-    id("org.openprojectx.karate.gradle")  version "0.1.71"
+    id("org.openprojectx.karate.gradle")  version "0.1.73"
 }
 
-repositories {
-    mavenCentral()
-}
+//repositories {
+//    mavenCentral()
+//}
 
 dependencies {
     testImplementation("com.github.tomakehurst:wiremock-jre8:2.35.2")
