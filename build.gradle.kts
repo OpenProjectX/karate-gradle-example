@@ -1,7 +1,7 @@
 import org.openprojectx.karate.gradle.task.RegressionRunTask
 
 plugins {
-    id("org.openprojectx.karate.gradle")  version "0.1.73"
+    id("org.openprojectx.karate.gradle")  version "0.1.75"
 }
 
 //repositories {
